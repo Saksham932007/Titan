@@ -3,7 +3,7 @@ use crate::logger;
 use crate::thread_pool::ThreadPool;
 use crate::{Config, WebsiteHandler};
 use std::convert::TryFrom;
-use std::io::{Read, Result as IoResult, Write};
+use std::io::{Read, Result as IoResult};
 use std::net::TcpListener;
 use std::path::PathBuf;
 
