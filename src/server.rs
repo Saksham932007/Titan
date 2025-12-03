@@ -1,4 +1,5 @@
 use crate::http::{Handler, Request, Response, StatusCode};
+use crate::logger;
 use crate::thread_pool::ThreadPool;
 use crate::{Config, WebsiteHandler};
 use std::convert::TryFrom;
@@ -40,11 +41,16 @@ impl Server {
                 // Parse buffer into Request
                 match Request::try_from(&buffer[..]) {
                     Ok(request) => {
-                        println!("Received request: {} {}", request.method, request.path);
-                        
                         // Create handler and process request
                         let mut handler = WebsiteHandler::new(PathBuf::from("public"));
                         let response = handler.handle_request(&request);
+                        
+                        // Log the request
+                        logger::log_request(
+                            &request.method.to_string(),
+                            &request.path,
+                            200, // Simplified: using 200 for now
+                        );
                         
                         // Write response to stream
                         if let Err(e) = response.write_to(&mut stream) {
