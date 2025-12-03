@@ -2,6 +2,7 @@
 pub mod config;
 pub mod http;
 pub mod server;
+pub mod thread_pool;
 pub mod website_handler;
 
 pub use config::Config;
