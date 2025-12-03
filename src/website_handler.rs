@@ -1,4 +1,5 @@
 use crate::http::{Handler, Method, Request, Response, StatusCode};
+use std::fs;
 use std::path::PathBuf;
 
 pub struct WebsiteHandler {
@@ -26,6 +27,10 @@ impl WebsiteHandler {
         
         path
     }
+
+    fn read_file(&self, path: &PathBuf) -> Result<String, std::io::Error> {
+        fs::read_to_string(path)
+    }
 }
 
 impl Handler for WebsiteHandler {
@@ -34,11 +39,13 @@ impl Handler for WebsiteHandler {
             Method::GET => {
                 let file_path = self.map_path(&request.path);
                 
-                // Placeholder: file reading will be added in next commit
-                Response::new(
-                    StatusCode::Ok,
-                    Some(format!("Would serve: {:?}", file_path)),
-                )
+                match self.read_file(&file_path) {
+                    Ok(contents) => Response::new(StatusCode::Ok, Some(contents)),
+                    Err(_) => Response::new(
+                        StatusCode::NotFound,
+                        Some("File not found".to_string()),
+                    ),
+                }
             }
             _ => Response::new(
                 StatusCode::NotFound,
