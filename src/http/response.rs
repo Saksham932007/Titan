@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::{Result as IoResult, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusCode {
@@ -34,5 +35,18 @@ pub struct Response {
 impl Response {
     pub fn new(status_code: StatusCode, body: Option<String>) -> Self {
         Response { status_code, body }
+    }
+
+    pub fn write_to(&self, stream: &mut impl Write) -> IoResult<()> {
+        let body = self.body.as_deref().unwrap_or("");
+        
+        write!(
+            stream,
+            "HTTP/1.1 {} {}\r\nContent-Length: {}\r\n\r\n{}",
+            self.status_code,
+            self.status_code.reason_phrase(),
+            body.len(),
+            body
+        )
     }
 }
