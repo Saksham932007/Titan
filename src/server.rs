@@ -1,8 +1,10 @@
-use crate::http::Request;
-use crate::Config;
+use crate::http::{Handler, Request, Response, StatusCode};
+use crate::thread_pool::ThreadPool;
+use crate::{Config, WebsiteHandler};
 use std::convert::TryFrom;
-use std::io::{Read, Result as IoResult};
+use std::io::{Read, Result as IoResult, Write};
 use std::net::TcpListener;
+use std::path::PathBuf;
 
 pub struct Server {
     address: String,
@@ -20,22 +22,47 @@ impl Server {
         
         println!("Server listening on {}", self.address);
         
+        // Create thread pool with 4 workers
+        let pool = ThreadPool::new(4);
+        
         for stream in listener.incoming() {
             let mut stream = stream?;
             
-            // Read bytes into a 1024-byte buffer
-            let mut buffer = [0; 1024];
-            stream.read(&mut buffer)?;
-            
-            // Parse buffer into Request
-            match Request::try_from(&buffer[..]) {
-                Ok(request) => {
-                    println!("Received request: {:?}", request);
+            // Dispatch connection handling to thread pool
+            pool.execute(move || {
+                let mut buffer = [0; 1024];
+                
+                if let Err(e) = stream.read(&mut buffer) {
+                    eprintln!("Failed to read from stream: {}", e);
+                    return;
                 }
-                Err(e) => {
-                    eprintln!("Failed to parse request: {}", e);
+                
+                // Parse buffer into Request
+                match Request::try_from(&buffer[..]) {
+                    Ok(request) => {
+                        println!("Received request: {} {}", request.method, request.path);
+                        
+                        // Create handler and process request
+                        let mut handler = WebsiteHandler::new(PathBuf::from("public"));
+                        let response = handler.handle_request(&request);
+                        
+                        // Write response to stream
+                        if let Err(e) = response.write_to(&mut stream) {
+                            eprintln!("Failed to write response: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to parse request: {}", e);
+                        
+                        // Send error response
+                        let error_response = Response::new(
+                            StatusCode::BadRequest,
+                            Some("Bad Request".to_string()),
+                        );
+                        let _ = error_response.write_to(&mut stream);
+                    }
                 }
-            }
+            });
         }
         
         Ok(())
