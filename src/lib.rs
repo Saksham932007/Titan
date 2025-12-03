@@ -8,5 +8,9 @@ pub use server::Server;
 
 pub fn run() {
     let cfg = Config::from_env();
-    println!("Titan library initialized on {}:{}", cfg.ip, cfg.port);
+    let server = Server::new(cfg);
+    
+    if let Err(e) = server.run() {
+        eprintln!("Server error: {}", e);
+    }
 }
