@@ -1,5 +1,5 @@
 use crate::Config;
-use std::io::Result as IoResult;
+use std::io::{Read, Result as IoResult};
 use std::net::TcpListener;
 
 pub struct Server {
@@ -18,7 +18,16 @@ impl Server {
         
         println!("Server listening on {}", self.address);
         
-        // Placeholder: accept connections loop will be added in next commit
+        for stream in listener.incoming() {
+            let mut stream = stream?;
+            
+            // Read bytes into a 1024-byte buffer
+            let mut buffer = [0; 1024];
+            stream.read(&mut buffer)?;
+            
+            println!("Received {} bytes", buffer.len());
+        }
+        
         Ok(())
     }
 }
